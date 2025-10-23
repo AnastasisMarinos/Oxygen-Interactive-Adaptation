@@ -128,16 +128,50 @@ void ALightSnapshotManager::AutoFindAllLights()
 
 void ALightSnapshotManager::BuildDefaultSnapshotColors()
 {
-	// Gentle defaults matching your snapshots; tweak in Details panel later
-	SnapshotColorTable.Add(EAudioSnapshot::CELESTIAL,       FLinearColor(0.85f, 0.90f, 1.00f)); // cool airy white
-	SnapshotColorTable.Add(EAudioSnapshot::TERRESTRIAL,     FLinearColor(1.00f, 0.90f, 0.70f)); // warm amber
-	SnapshotColorTable.Add(EAudioSnapshot::CONFLICT,        FLinearColor::White);               // tight white
-	SnapshotColorTable.Add(EAudioSnapshot::MOURNING,        FLinearColor(0.75f, 0.75f, 0.80f)); // desat
-	SnapshotColorTable.Add(EAudioSnapshot::FAMILY,          FLinearColor(1.00f, 0.92f, 0.80f)); // soft amber
-	SnapshotColorTable.Add(EAudioSnapshot::SCIENCE_CRIME,   FLinearColor(0.70f, 0.90f, 1.00f)); // cool lab
-	SnapshotColorTable.Add(EAudioSnapshot::ART,             FLinearColor(1.00f, 0.98f, 0.92f)); // elegant warm white
-	SnapshotColorTable.Add(EAudioSnapshot::VICE,            FLinearColor(0.90f, 0.70f, 0.90f)); // dimmed magenta
-	SnapshotColorTable.Add(EAudioSnapshot::BETRAYAL,        FLinearColor(0.85f, 0.90f, 1.00f)); // chilly white
-	SnapshotColorTable.Add(EAudioSnapshot::POLITICS,        FLinearColor(1.00f, 1.00f, 1.00f)); // neutral
-	SnapshotColorTable.Add(EAudioSnapshot::REFLECTION,      FLinearColor(0.90f, 0.95f, 1.00f)); // quiet cool
+	// sRGB (0–255) → Linear + 20% desat toward luminance gray.
+	auto C = [](uint8 R, uint8 G, uint8 B)
+	{
+		FLinearColor Lin = FLinearColor::FromSRGBColor(FColor(R, G, B));
+		const float L = Lin.GetLuminance();
+		const FLinearColor Gray(L, L, L);
+		// 0.20 = ~20% less saturation
+		return FMath::Lerp(Lin, Gray, 0.20f);
+	};
+
+	SnapshotColorTable.Empty();
+
+	// --- Palette (base hex in comments) ---
+
+	// TEAL (airy / celestial) 1
+	SnapshotColorTable.Add(EAudioSnapshot::CELESTIAL,     C(34, 211, 238));  // #22D3EE  (teal-cyan)
+
+	// ORANGE (earth) 1
+	SnapshotColorTable.Add(EAudioSnapshot::TERRESTRIAL,   C(245, 158, 11));  // #F59E0B  (amber)
+
+	// RED (conflict) 2 (deeper)
+	SnapshotColorTable.Add(EAudioSnapshot::CONFLICT,      C(193, 18, 31));   // #C1121F  (deep red)
+
+	// PURPLE (mourning) 2 (deeper violet)
+	SnapshotColorTable.Add(EAudioSnapshot::MOURNING,      C(109, 40, 217));  // #6D28D9
+
+	// ORANGE (family) 2 (burnt)
+	SnapshotColorTable.Add(EAudioSnapshot::FAMILY,        C(217, 119, 6));   // #D97706
+
+	// TEAL (science/crime) 2 (greener teal)
+	SnapshotColorTable.Add(EAudioSnapshot::SCIENCE_CRIME, C(45, 212, 191));  // #2DD4BF
+
+	// PURPLE (art) 1 (lavender)
+	SnapshotColorTable.Add(EAudioSnapshot::ART,           C(167, 139, 250)); // #A78BFA
+
+	// RED (vice) 1 (hot/coral red)
+	SnapshotColorTable.Add(EAudioSnapshot::VICE,          C(242, 82, 92));   // #F2525C
+
+	// BLUE (betrayal) 1 (icy/soft blue)
+	SnapshotColorTable.Add(EAudioSnapshot::BETRAYAL,      C(96, 165, 250));  // #60A5FA
+
+	// BLUE (politics) 2 (royal/civic blue)
+	SnapshotColorTable.Add(EAudioSnapshot::POLITICS,      C(37, 99, 235));   // #2563EB
+
+	// GREENISH-BLUE (reflection) (calm aqua/sea-green)
+	SnapshotColorTable.Add(EAudioSnapshot::REFLECTION,    C(52, 211, 153));  // #34D399
 }
