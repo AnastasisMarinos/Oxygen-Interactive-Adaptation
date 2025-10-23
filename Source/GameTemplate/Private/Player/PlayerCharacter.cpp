@@ -2,7 +2,6 @@
 
 #include "Player/PlayerCharacter.h"
 
-#include "AI/EnemyBase.h"
 #include "Blueprint/UserWidget.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
@@ -119,87 +118,4 @@ void APlayerCharacter::Interact()
 void APlayerCharacter::InteractionCooldown()
 {
 	bCanInteract = true;
-}
-
-void APlayerCharacter::Attack()
-{
-	if (bIsHoldingWeapon)
-	{
-		if (!bCanAttack)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Attack blocked due to cooldown."));
-			// Attack is still on cooldown
-			return;
-		}
-
-		bCanAttack = false; // Block further attacks
-
-		AttackTrace();
-
-		UAnimMontage* SelectedMontage = FMath::RandBool() ? WeaponAttackMontage1 : WeaponAttackMontage2;
-		if (SelectedMontage && GetMesh() && GetMesh()->GetAnimInstance())
-		{
-			GetMesh()->GetAnimInstance()->Montage_Play(SelectedMontage);
-			UE_LOG(LogTemp, Warning, TEXT("Montage played"));
-		}
-
-		GetWorldTimerManager().SetTimer(AttackCooldownHandle, this, &APlayerCharacter::ResetAttackCooldown, AttackCooldown, false);
-	}
-}
-
-void APlayerCharacter::AttackTrace()
-{
-	FVector Start = Camera->GetComponentLocation(); // or your weapon muzzle location
-	FVector ForwardVector = Camera->GetForwardVector(); // or character facing direction
-	FVector End = Start + ForwardVector * 200.f; // Trace distance (adjust as needed)
-
-	FHitResult Hit;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this); // Ignore self
-
-	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Pawn, Params))
-	{
-		APawn* HitPawn = Cast<APawn>(Hit.GetActor());
-		if (HitPawn)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Hit a pawn: %s"), *HitPawn->GetName());
-
-			if (AEnemyBase* Enemy = Cast<AEnemyBase>(HitPawn))
-			{
-				if (bIsHoldingWeapon)
-				{
-					Enemy->ReceiveDamage(50.0f); // Adjust damage as needed
-				}
-				else
-				{
-					Enemy->ReceiveDamage(10.0f);
-				}
-			}
-		}
-	}
-
-	// For debugging:
-	DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1.0f, 0, 2.0f);
-}
-
-void APlayerCharacter::ResetAttackCooldown()
-{
-	bCanAttack = true;
-
-	if (WeaponBloodyMaterial)
-	{
-		WeaponMesh->SetMaterial(0, WeaponBloodyMaterial);
-	}
-}
-
-void APlayerCharacter::RecieveDamage(float Damage)
-{
-	if (Health > 0.0f)
-	{
-		Health -= Damage;
-	}
-	else
-	{
-		// Die & Restart Level
-	}
 }

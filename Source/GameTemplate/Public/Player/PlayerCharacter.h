@@ -26,14 +26,6 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void PickedUpWeapon();
-	
-	
-	void Attack();
-	void AttackTrace();
-	void ResetAttackCooldown();
-
-	UFUNCTION(BlueprintCallable)
-	void RecieveDamage(float Damage);
 
 protected:
 	// PROPERTIES & VARIABLES //
