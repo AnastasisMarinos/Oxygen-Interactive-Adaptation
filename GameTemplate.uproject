@@ -226,6 +226,10 @@
 		{
 			"Name": "TextureMediaPlayer",
 			"Enabled": true
+		},
+		{
+			"Name": "AudioModulation",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [
