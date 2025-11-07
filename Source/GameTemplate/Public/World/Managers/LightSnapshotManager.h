@@ -45,6 +45,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Light")
 	void ApplyLightSnapshot(EAudioSnapshot Snapshot, float BlendSeconds = -1.f);
 
+	UFUNCTION(BlueprintPure, Category="Light|Snapshots")
+	FLinearColor GetCurrentColor() const { return CurrentColor; }
+
 private:
 	TArray<TWeakObjectPtr<AStageLight>> Lights;
 

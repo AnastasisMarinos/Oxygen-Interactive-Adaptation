@@ -11,7 +11,7 @@
 #include "Camera/CameraComponent.h"
 #include "Items/ItemTypes.h"
 #include "UI/PlayerWidget.h"
-#include "World/InteractableBase.h"
+#include "World//Interactables/InteractableBase.h"
 
 
 // Initialize Character & Set Default Values.
