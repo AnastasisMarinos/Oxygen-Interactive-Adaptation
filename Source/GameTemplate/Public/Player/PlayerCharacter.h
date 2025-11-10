@@ -19,8 +19,6 @@ public:
 	// FUNCTIONS //
 	APlayerCharacter();
 	
-	void Blink();
-	
 	void SetCurrentInteractable(AInteractableBase* Interactable);
 	void Interact();
 
@@ -44,15 +42,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> PlayerWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Animations")
-	UAnimMontage* WeaponAttackMontage1;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Animations")
-	UAnimMontage* WeaponAttackMontage2;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Items")
-	bool bIsHoldingWeapon = false;
-
 	UPROPERTY()
 	AInteractableBase* CurrentInteractable;
 	
@@ -60,17 +49,6 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	void InteractionCooldown();
-	
 	UPlayerWidget* PlayerWidget;
-	
-	FTimerHandle AttackCooldownHandle;
-
-	bool bCanAttack = true;
-	float AttackCooldown = 2.25f;
-
-	float Health = 1.0f;
-
-	bool bCanInteract = true;
 };
 

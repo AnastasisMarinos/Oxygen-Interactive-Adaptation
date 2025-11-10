@@ -26,13 +26,9 @@ void AWordInteractableManager::BeginPlay()
 			AudioManager = Cast<AAudioManager>(Found[0]);
 		}
 	}
-
-	// Bind exactly once (defensive RemoveDynamic first)
+	
 	if (AudioManager && !bDelegatesBound)
 	{
-		AudioManager->OnLineStarted.RemoveDynamic(this, &AWordInteractableManager::HandleLineStarted);
-		AudioManager->OnSequenceFinished.RemoveDynamic(this, &AWordInteractableManager::HandleSequenceFinished);
-
 		AudioManager->OnLineStarted.AddDynamic(this, &AWordInteractableManager::HandleLineStarted);
 		AudioManager->OnSequenceFinished.AddDynamic(this, &AWordInteractableManager::HandleSequenceFinished);
 		bDelegatesBound = true;
@@ -44,19 +40,6 @@ void AWordInteractableManager::BeginPlay()
 		const int32 AnchorIdx = ResolveAnchorIndex(0);
 		SpawnStationFor(AudioManager->NarrationLines[0].Keyword, AnchorIdx);
 	}
-}
-
-void AWordInteractableManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	// Cleanly unbind (in case the actor is toggled in PIE or reloaded)
-	if (AudioManager && bDelegatesBound)
-	{
-		AudioManager->OnLineStarted.RemoveDynamic(this, &AWordInteractableManager::HandleLineStarted);
-		AudioManager->OnSequenceFinished.RemoveDynamic(this, &AWordInteractableManager::HandleSequenceFinished);
-		bDelegatesBound = false;
-	}
-
-	Super::EndPlay(EndPlayReason);
 }
 
 void AWordInteractableManager::HandleLineStarted(int32 LineIndex, const FNarrationLine& /*Line*/)

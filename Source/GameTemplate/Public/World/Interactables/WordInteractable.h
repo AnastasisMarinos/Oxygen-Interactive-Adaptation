@@ -6,7 +6,6 @@
 #include "InteractableBase.h"
 #include "WordInteractable.generated.h"
 
-class UTextRenderComponent;
 class ALightSnapshotManager;
 class AAudioManager;
 
@@ -39,6 +38,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Anim")
 	float LowerTime = 2.5f;
 
+	// Visual FX hook (do NOT destroy here)
+	UFUNCTION(BlueprintImplementableEvent, Category="Word")
+	void OnWordActivatedFX();
+
 	// AInteractableBase override
 	virtual void Interact() override;
 
@@ -47,6 +50,8 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 private:
+	bool bInteracted = false;
+	
 	// Spawn/Exit anim state
 	enum class EAnimState : uint8 { Idle, Rising, Lowering };
 	EAnimState AnimState = EAnimState::Idle;
@@ -54,7 +59,6 @@ private:
 	FVector BaseLoc;
 	float   AnimT = 0.f; // 0..1 normalized progress
 
-	// Helpers
 	static float EaseInOutCubic(float T)
 	{
 		return (T < 0.5f) ? 4.f*T*T*T : 1.f - FMath::Pow(-2.f*T + 2.f, 3.f)/2.f;

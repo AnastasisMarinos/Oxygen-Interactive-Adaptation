@@ -1,5 +1,4 @@
 ﻿// © Anastasis Marinos //
-
 #include "World/Managers/LightSnapshotManager.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -14,7 +13,7 @@ void ALightSnapshotManager::BeginPlay()
 
 	if (bAutoFindLights)
 	{
-		AutoFindAllLights();
+		AutoFindAllTargets();
 	}
 
 	if (SnapshotColorTable.Num() == 0)
@@ -22,18 +21,18 @@ void ALightSnapshotManager::BeginPlay()
 		BuildDefaultSnapshotColors();
 	}
 
-	// Initialize current color from first light (if any), else white
-	if (Lights.Num() > 0 && Lights[0].IsValid())
+	// Initialize current from first valid target (else white)
+	if (ColorTargets.Num() > 0)
 	{
-		CurrentColor = Lights[0]->GetLightColor();
-	}
-	else
-	{
-		CurrentColor = FLinearColor::White;
+		UObject* Obj = ColorTargets[0].Get();
+		if (Obj && Obj->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass()))
+		{
+			CurrentColor = ILightColorTarget::Execute_GetLightColor(Obj);
+		}
 	}
 	StartColor = TargetColor = CurrentColor;
 
-	// Ensure all lights are pushed to current color on start
+	// Push initial color
 	PushColorAll(CurrentColor);
 }
 
@@ -55,44 +54,56 @@ void ALightSnapshotManager::Tick(float DeltaSeconds)
 	}
 }
 
-void ALightSnapshotManager::RegisterLight(AStageLight* Light)
+/* -------- Registration -------- */
+void ALightSnapshotManager::RegisterColorTarget(UObject* Target)
 {
-	if (!Light) return;
-	Lights.AddUnique(Light);
-	Light->SetLightColor(CurrentColor);
+	if (!Target) return;
+	if (!Target->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass()))
+		return;
+
+	// unique add
+	for (const TWeakObjectPtr<UObject>& P : ColorTargets)
+	{
+		if (P.Get() == Target) return;
+	}
+
+	ColorTargets.Add(Target);
+	// immediately push current color so it matches
+	ILightColorTarget::Execute_SetLightColor(Target, CurrentColor);
 }
 
-void ALightSnapshotManager::UnregisterLight(AStageLight* Light)
+void ALightSnapshotManager::UnregisterColorTarget(UObject* Target)
 {
-	Lights.Remove(Light);
+	ColorTargets.RemoveAllSwap([Target](const TWeakObjectPtr<UObject>& P)
+	{
+		return P.Get() == nullptr || P.Get() == Target;
+	});
 }
 
+/* -------- API -------- */
 void ALightSnapshotManager::ApplyLightColor(const FLinearColor& InTargetColor, float BlendSeconds)
 {
-	if (BlendSeconds <= 0.f)
-	{
-		BlendSeconds = DefaultBlendSeconds;
-	}
+	if (BlendSeconds <= 0.f) BlendSeconds = DefaultBlendSeconds;
 	BeginBlendTo(InTargetColor, BlendSeconds);
 }
 
 void ALightSnapshotManager::ApplyLightSnapshot(EAudioSnapshot Snapshot, float BlendSeconds)
 {
-	if (!SnapshotColorTable.Contains(Snapshot))
+	if (const FLinearColor* Col = SnapshotColorTable.Find(Snapshot))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LightSnapshotManager: No color for snapshot."));
-		return;
+		ApplyLightColor(*Col, BlendSeconds);
 	}
-	ApplyLightColor(SnapshotColorTable[Snapshot], BlendSeconds);
+	// no else/logs (as you asked to keep things clean)
 }
 
+/* -------- Internals -------- */
 void ALightSnapshotManager::BeginBlendTo(const FLinearColor& InTarget, float InBlend)
 {
-	StartColor   = CurrentColor;
-	TargetColor  = InTarget;
-	BlendDuration= FMath::Max(0.01f, InBlend);
-	BlendElapsed = 0.f;
-	bBlending    = true;
+	StartColor    = CurrentColor;
+	TargetColor   = InTarget;
+	BlendDuration = FMath::Max(0.01f, InBlend);
+	BlendElapsed  = 0.f;
+	bBlending     = true;
 
 	if (BlendDuration <= 0.015f)
 	{
@@ -102,76 +113,57 @@ void ALightSnapshotManager::BeginBlendTo(const FLinearColor& InTarget, float InB
 	}
 }
 
+/** Simplified + safe: compact dead entries, then push to the rest */
 void ALightSnapshotManager::PushColorAll(const FLinearColor& Color)
 {
-	for (int32 i = Lights.Num() - 1; i >= 0; --i)
+	ColorTargets.RemoveAllSwap([](const TWeakObjectPtr<UObject>& P)
 	{
-		AStageLight* L = Lights[i].Get();
-		if (!L)
+		UObject* Obj = P.Get();
+		return (!Obj || !Obj->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass()));
+	});
+
+	for (const TWeakObjectPtr<UObject>& P : ColorTargets)
+	{
+		if (UObject* Obj = P.Get())
 		{
-			Lights.RemoveAtSwap(i);
-			continue;
+			ILightColorTarget::Execute_SetLightColor(Obj, Color);
 		}
-		L->SetLightColor(Color);
 	}
 }
 
-void ALightSnapshotManager::AutoFindAllLights()
+/** Auto-discover anything that implements the interface */
+void ALightSnapshotManager::AutoFindAllTargets()
 {
 	TArray<AActor*> Found;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AStageLight::StaticClass(), Found);
+	UGameplayStatics::GetAllActorsWithInterface(GetWorld(), ULightColorTarget::StaticClass(), Found);
 	for (AActor* A : Found)
 	{
-		RegisterLight(Cast<AStageLight>(A));
+		RegisterColorTarget(A);
 	}
 }
 
+/* Your existing palette; unchanged */
 void ALightSnapshotManager::BuildDefaultSnapshotColors()
 {
-	// sRGB (0–255) → Linear + 20% desat toward luminance gray.
 	auto C = [](uint8 R, uint8 G, uint8 B)
 	{
+		// keep your original desat or swap to FLinearColor::FromSRGBColor(FColor(R,G,B));
 		FLinearColor Lin = FLinearColor::FromSRGBColor(FColor(R, G, B));
 		const float L = Lin.GetLuminance();
 		const FLinearColor Gray(L, L, L);
-		// 0.20 = ~20% less saturation
 		return FMath::Lerp(Lin, Gray, 0.20f);
 	};
 
 	SnapshotColorTable.Empty();
-
-	// --- Palette (base hex in comments) ---
-
-	// TEAL (airy / celestial) 1
-	SnapshotColorTable.Add(EAudioSnapshot::CELESTIAL,     C(34, 211, 238));  // #22D3EE  (teal-cyan)
-
-	// ORANGE (earth) 1
-	SnapshotColorTable.Add(EAudioSnapshot::TERRESTRIAL,   C(245, 158, 11));  // #F59E0B  (amber)
-
-	// RED (conflict) 2 (deeper)
-	SnapshotColorTable.Add(EAudioSnapshot::CONFLICT,      C(193, 18, 31));   // #C1121F  (deep red)
-
-	// PURPLE (mourning) 2 (deeper violet)
-	SnapshotColorTable.Add(EAudioSnapshot::MOURNING,      C(109, 40, 217));  // #6D28D9
-
-	// ORANGE (family) 2 (burnt)
-	SnapshotColorTable.Add(EAudioSnapshot::FAMILY,        C(217, 119, 6));   // #D97706
-
-	// TEAL (science/crime) 2 (greener teal)
-	SnapshotColorTable.Add(EAudioSnapshot::SCIENCE_CRIME, C(45, 212, 191));  // #2DD4BF
-
-	// PURPLE (art) 1 (lavender)
-	SnapshotColorTable.Add(EAudioSnapshot::ART,           C(167, 139, 250)); // #A78BFA
-
-	// RED (vice) 1 (hot/coral red)
-	SnapshotColorTable.Add(EAudioSnapshot::VICE,          C(242, 82, 92));   // #F2525C
-
-	// BLUE (betrayal) 1 (icy/soft blue)
-	SnapshotColorTable.Add(EAudioSnapshot::BETRAYAL,      C(96, 165, 250));  // #60A5FA
-
-	// BLUE (politics) 2 (royal/civic blue)
-	SnapshotColorTable.Add(EAudioSnapshot::POLITICS,      C(37, 99, 235));   // #2563EB
-
-	// GREENISH-BLUE (reflection) (calm aqua/sea-green)
-	SnapshotColorTable.Add(EAudioSnapshot::REFLECTION,    C(52, 211, 153));  // #34D399
+	SnapshotColorTable.Add(EAudioSnapshot::CELESTIAL,     C(34, 211, 238));
+	SnapshotColorTable.Add(EAudioSnapshot::TERRESTRIAL,   C(245, 158, 11));
+	SnapshotColorTable.Add(EAudioSnapshot::CONFLICT,      C(193, 18, 31));
+	SnapshotColorTable.Add(EAudioSnapshot::MOURNING,      C(109, 40, 217));
+	SnapshotColorTable.Add(EAudioSnapshot::FAMILY,        C(217, 119, 6));
+	SnapshotColorTable.Add(EAudioSnapshot::SCIENCE_CRIME, C(45, 212, 191));
+	SnapshotColorTable.Add(EAudioSnapshot::ART,           C(167, 139, 250));
+	SnapshotColorTable.Add(EAudioSnapshot::VICE,          C(242, 82, 92));
+	SnapshotColorTable.Add(EAudioSnapshot::BETRAYAL,      C(96, 165, 250));
+	SnapshotColorTable.Add(EAudioSnapshot::POLITICS,      C(37, 99, 235));
+	SnapshotColorTable.Add(EAudioSnapshot::REFLECTION,    C(52, 211, 153));
 }

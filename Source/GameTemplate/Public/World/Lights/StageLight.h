@@ -6,17 +6,17 @@
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SpotLightComponent.h"
+#include "Interfaces/LightColorTarget.h"
 #include "StageLight.generated.h"
 
 UCLASS()
-class GAMETEMPLATE_API AStageLight : public AActor
+class GAMETEMPLATE_API AStageLight : public AActor, public ILightColorTarget
 {
 	GENERATED_BODY()
 
 public:
 	AStageLight();
 
-	// Components (assign meshes in BP)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Light|Components")
 	TObjectPtr<UStaticMeshComponent> SM_LightBase;
 
@@ -29,14 +29,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Light|Components")
 	TObjectPtr<USpotLightComponent> SpotLight;
 
-	/** Change the beam color (used by the LightSnapshotManager) */
+	/** Native C++ convenience (kept) */
 	UFUNCTION(BlueprintCallable, Category="Light")
-	void SetLightColor(const FLinearColor& InColor);
+	void SetBeamColor(const FLinearColor& InColor);
 
-	/** Optional: read current color */
 	UFUNCTION(BlueprintPure, Category="Light")
-	FLinearColor GetLightColor() const;
+	FLinearColor ReadBeamColor() const;
 
 protected:
 	virtual void BeginPlay() override;
+
+	/** Interface impls */
+	virtual void SetLightColor_Implementation(const FLinearColor& InColor) override;
+	virtual FLinearColor GetLightColor_Implementation() override;
 };

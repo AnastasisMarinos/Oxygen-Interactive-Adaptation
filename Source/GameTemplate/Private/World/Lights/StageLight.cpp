@@ -1,6 +1,6 @@
 ﻿// © Anastasis Marinos //
 
-#include "World/StageLight.h"
+#include "World/Lights/StageLight.h"
 
 AStageLight::AStageLight()
 {
@@ -28,7 +28,8 @@ void AStageLight::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AStageLight::SetLightColor(const FLinearColor& InColor)
+/* -------- Native helpers (unchanged behavior) -------- */
+void AStageLight::SetBeamColor(const FLinearColor& InColor)
 {
 	if (SpotLight)
 	{
@@ -36,7 +37,18 @@ void AStageLight::SetLightColor(const FLinearColor& InColor)
 	}
 }
 
-FLinearColor AStageLight::GetLightColor() const
+FLinearColor AStageLight::ReadBeamColor() const
 {
 	return SpotLight ? SpotLight->GetLightColor() : FLinearColor::White;
+}
+
+/* -------- Interface implementations -------- */
+void AStageLight::SetLightColor_Implementation(const FLinearColor& InColor)
+{
+	SetBeamColor(InColor);
+}
+
+FLinearColor AStageLight::GetLightColor_Implementation()
+{
+	return ReadBeamColor();
 }

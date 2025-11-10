@@ -9,7 +9,6 @@
 
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
-#include "Items/ItemTypes.h"
 #include "UI/PlayerWidget.h"
 #include "World//Interactables/InteractableBase.h"
 
@@ -72,14 +71,6 @@ void APlayerCharacter::BeginPlay()
 	}
 }
 
-void APlayerCharacter::Blink()
-{
-	if (PlayerWidget)
-	{
-		PlayerWidget->ToggleBlink();
-	}
-}
-
 void APlayerCharacter::SetCurrentInteractable(AInteractableBase* Interactable)
 {
 	CurrentInteractable = Interactable;
@@ -87,35 +78,8 @@ void APlayerCharacter::SetCurrentInteractable(AInteractableBase* Interactable)
 
 void APlayerCharacter::Interact()
 {
-	if (bCanInteract)
+	if (CurrentInteractable)
 	{
-		bCanInteract = false;
-		
-		if (CurrentInteractable)
-		{
-			switch (CurrentInteractable->ItemType)
-			{
-			case EItemType::Headphones:
-				
-				break;
-			
-			case EItemType::Axe:
-				bIsHoldingWeapon = true;
-				WeaponMesh->SetVisibility(true);
-				PickedUpWeapon();
-				break;
-			}
-		
-			CurrentInteractable->Interact();
-			Blink();
-
-			FTimerHandle InteractionCooldownDelay;
-			GetWorldTimerManager().SetTimer(InteractionCooldownDelay, this, &APlayerCharacter::InteractionCooldown, 1.0f, false);
-		}
+		CurrentInteractable->Interact();
 	}
-}
-
-void APlayerCharacter::InteractionCooldown()
-{
-	bCanInteract = true;
 }

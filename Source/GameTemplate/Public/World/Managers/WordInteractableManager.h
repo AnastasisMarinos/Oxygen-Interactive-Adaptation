@@ -20,7 +20,6 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** When a narration line STARTS, we pre-spawn the station for the NEXT line */
 	UFUNCTION()
