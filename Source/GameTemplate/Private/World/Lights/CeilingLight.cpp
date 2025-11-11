@@ -26,11 +26,6 @@ void ACeilingLight::SetLightColor_Implementation(const FLinearColor& InColor)
 	if (MID && EmissiveParamName != NAME_None)
 	{
 		// Push in linear space; shader usually expects sRGB->linear already
-		MID->SetVectorParameterValue(EmissiveParamName, InColor * EmissiveBoost);
+		MID->SetVectorParameterValue(EmissiveParamName, InColor);
 	}
-}
-
-FLinearColor ACeilingLight::GetLightColor_Implementation()
-{
-	return LastColor;
 }

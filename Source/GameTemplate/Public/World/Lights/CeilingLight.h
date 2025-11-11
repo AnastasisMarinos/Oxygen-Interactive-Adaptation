@@ -23,10 +23,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Panel")
 	FName EmissiveParamName = TEXT("EmissiveColor");
 
-	/** Optional intensity multiplier */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Panel")
-	float EmissiveBoost = 6.0f;
-
 protected:
 	virtual void BeginPlay() override;
 
@@ -38,5 +34,4 @@ private:
 
 	/* ILightColorTarget */
 	virtual void SetLightColor_Implementation(const FLinearColor& InColor) override;
-	virtual FLinearColor GetLightColor_Implementation() override;
 };

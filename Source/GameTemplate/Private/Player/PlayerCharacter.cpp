@@ -10,7 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
 #include "UI/PlayerWidget.h"
-#include "World//Interactables/InteractableBase.h"
+#include "World/Interactables/WordInteractable.h"
 
 
 // Initialize Character & Set Default Values.
@@ -28,11 +28,6 @@ APlayerCharacter::APlayerCharacter()
 	CameraArm->bUsePawnControlRotation = true;
 	CameraArm->bEnableCameraRotationLag = true;
 	CameraArm->CameraRotationLagSpeed = 20.0f;
-
-	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
-	WeaponMesh->SetupAttachment(GetMesh());
-	WeaponMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, "weapon_socket");
-	WeaponMesh->SetVisibility(false);
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	Camera->AttachToComponent(CameraArm, FAttachmentTransformRules::KeepRelativeTransform);
@@ -71,7 +66,7 @@ void APlayerCharacter::BeginPlay()
 	}
 }
 
-void APlayerCharacter::SetCurrentInteractable(AInteractableBase* Interactable)
+void APlayerCharacter::SetCurrentInteractable(AWordInteractable* Interactable)
 {
 	CurrentInteractable = Interactable;
 }
@@ -82,4 +77,9 @@ void APlayerCharacter::Interact()
 	{
 		CurrentInteractable->Interact();
 	}
+}
+
+void APlayerCharacter::Blink()
+{
+	PlayerWidget->ToggleBlink();
 }

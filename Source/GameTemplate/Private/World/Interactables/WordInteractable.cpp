@@ -5,24 +5,48 @@
 #include "Components/WidgetComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Player/PlayerCharacter.h"
 #include "World/Managers/AudioManager.h"
-#include "Engine/World.h"
 
 AWordInteractable::AWordInteractable()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	// Root
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	SetRootComponent(SceneRoot);
+
+	// Mesh
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(SceneRoot);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Interaction sphere
+	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
+	InteractionSphere->InitSphereRadius(200.f);
+	InteractionSphere->SetupAttachment(MeshComponent);
+	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 }
 
 void AWordInteractable::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Cache base location and start below ground for rise anim
+	// Cache player
+	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+
+	// Bind overlaps
+	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AWordInteractable::OnSphereBeginOverlap);
+	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AWordInteractable::OnSphereEndOverlap);
+
+	// Rise from below
 	BaseLoc = GetActorLocation();
 	SetActorLocation(BaseLoc - FVector(0.f, 0.f, RiseDistance));
 	StartRise();
 
-	// Auto-hook managers
+	// Auto-find managers
 	if (bAutoFindManagers)
 	{
 		AutoFindManagers();
@@ -32,35 +56,60 @@ void AWordInteractable::BeginPlay()
 void AWordInteractable::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
 	UpdateAnim(DeltaSeconds);
 }
 
 void AWordInteractable::Interact()
 {
-	if (bPlayerInRange)
+	if (bInteracted)
+		return;
+
+	bInteracted = true;
+	
+	// VFX-only hook (don’t destroy inside)
+	OnWordActivatedFX();
+
+	// Trigger the next narration line
+	if (!AudioManager && bAutoFindManagers)
 	{
-		if (bInteracted)
-			return;
+		AutoFindManagers();
+	}
+	if (AudioManager)
+	{
+		AudioManager->PlayerTriggeredNextLine();
+	}
 
-		// VFX-only hook (BP): NO Destroy here
-		OnWordActivatedFX();
+	// Start exit anim (Destroy() when finished lowering)
+	StartLower();
+}
 
-		bInteracted = true;
+/* ----------------- Overlap ----------------- */
 
-		// Trigger next narration line
-		if (!AudioManager && bAutoFindManagers)
+void AWordInteractable::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor == PlayerPawn)
+	{
+		// If your player stores a pointer, update it here:
+		if (APlayerCharacter* PC = Cast<APlayerCharacter>(PlayerPawn))
 		{
-			AutoFindManagers();
+			PC->SetCurrentInteractable(this);
 		}
-		if (AudioManager)
-		{
-			AudioManager->PlayerTriggeredNextLine();
-		}
-
-		// Begin exit animation; actual Destroy() happens at the end of lowering
-		StartLower();
 	}
 }
+
+void AWordInteractable::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor == PlayerPawn)
+	{
+		if (APlayerCharacter* PC = Cast<APlayerCharacter>(PlayerPawn))
+		{
+		    PC->SetCurrentInteractable(nullptr);
+		}
+	}
+}
+
+/* ----------------- Helpers ----------------- */
 
 void AWordInteractable::StartRise()
 {
@@ -73,8 +122,7 @@ void AWordInteractable::StartLower()
 	AnimState = EAnimState::Lowering;
 	AnimT = 0.f;
 
-	// Hide prompt while lowering & prevent further interaction
-	if (InteractionWidget) InteractionWidget->SetVisibility(false);
+	// Hide prompt & block further overlaps/interactions
 	if (InteractionSphere) InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
@@ -93,21 +141,13 @@ void AWordInteractable::UpdateAnim(float DeltaSeconds)
 	{
 		const float Z = FMath::Lerp(BaseLoc.Z - RiseDistance, BaseLoc.Z, E);
 		SetActorLocation(FVector(BaseLoc.X, BaseLoc.Y, Z));
-
-		if (AnimT >= 1.f)
-		{
-			AnimState = EAnimState::Idle;
-		}
+		if (AnimT >= 1.f) AnimState = EAnimState::Idle;
 	}
 	else // Lowering
 	{
 		const float Z = FMath::Lerp(BaseLoc.Z, BaseLoc.Z - RiseDistance, E);
 		SetActorLocation(FVector(BaseLoc.X, BaseLoc.Y, Z));
-
-		if (AnimT >= 1.f)
-		{
-			Destroy(); // single, guaranteed destroy point
-		}
+		if (AnimT >= 1.f) Destroy();
 	}
 }
 

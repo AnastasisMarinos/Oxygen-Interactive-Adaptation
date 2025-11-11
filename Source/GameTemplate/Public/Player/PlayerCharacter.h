@@ -6,7 +6,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
-class AInteractableBase;
+class AWordInteractable;
 class UPlayerWidget;
 class UWidgetComponent;
 
@@ -19,11 +19,11 @@ public:
 	// FUNCTIONS //
 	APlayerCharacter();
 	
-	void SetCurrentInteractable(AInteractableBase* Interactable);
+	void SetCurrentInteractable(AWordInteractable* Interactable);
 	void Interact();
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void PickedUpWeapon();
+	UFUNCTION(BlueprintCallable)
+	void Blink();
 
 protected:
 	// PROPERTIES & VARIABLES //
@@ -33,17 +33,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Camera")
 	class UCameraComponent* Camera;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
-	UStaticMeshComponent* WeaponMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	UMaterialInstance* WeaponBloodyMaterial;
-
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> PlayerWidgetClass;
 
 	UPROPERTY()
-	AInteractableBase* CurrentInteractable;
+	AWordInteractable* CurrentInteractable;
 	
 	// FUNCTIONS //
 	virtual void BeginPlay() override;
