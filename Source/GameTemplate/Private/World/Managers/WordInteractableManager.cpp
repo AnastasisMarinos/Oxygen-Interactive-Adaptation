@@ -1,11 +1,10 @@
 ﻿// © Anastasis Marinos //
 
 #include "World/Managers/WordInteractableManager.h"
-
 #include "World/Managers/AudioManager.h"
 #include "World/Interactables/WordInteractable.h"
+#include "World/Managers/LightSnapshotManager.h"
 #include "Kismet/GameplayStatics.h"
-#include "Engine/World.h"
 
 AWordInteractableManager::AWordInteractableManager()
 {
@@ -26,7 +25,8 @@ void AWordInteractableManager::BeginPlay()
 			AudioManager = Cast<AAudioManager>(Found[0]);
 		}
 	}
-	
+
+	// Bind delegates
 	if (AudioManager && !bDelegatesBound)
 	{
 		AudioManager->OnLineStarted.AddDynamic(this, &AWordInteractableManager::HandleLineStarted);
@@ -34,11 +34,20 @@ void AWordInteractableManager::BeginPlay()
 		bDelegatesBound = true;
 	}
 
-	// Optional: pre-spawn for line 0 BEFORE the first line starts (use with care)
+	// PRE-SPAWN for line 0 (since you no longer auto-start the first line)
 	if (bSpawnForFirstLineImmediately && AudioManager && AudioManager->NarrationLines.IsValidIndex(0))
 	{
 		const int32 AnchorIdx = ResolveAnchorIndex(0);
 		SpawnStationFor(AudioManager->NarrationLines[0].Keyword, AnchorIdx);
+
+		// Optionally light the scene with the first line's snapshot immediately
+		if (bApplyFirstLineSnapshotOnStart && AudioManager->LightSnapshotManager)
+		{
+			AudioManager->LightSnapshotManager->ApplyLightSnapshot(
+				AudioManager->NarrationLines[0].Snapshot,
+				0.0f /*instant*/
+			);
+		}
 	}
 }
 
@@ -50,15 +59,13 @@ void AWordInteractableManager::HandleLineStarted(int32 LineIndex, const FNarrati
 	const int32 NextIndex = LineIndex + 1;
 	if (!AudioManager->NarrationLines.IsValidIndex(NextIndex))
 	{
-		return;
+		return; // nothing to spawn after the last line
 	}
 
 	const FNarrationLine& Next = AudioManager->NarrationLines[NextIndex];
-
-	// Optional: skip spawn if no keyword set
 	if (Next.Keyword.ToString().TrimStartAndEnd().IsEmpty())
 	{
-		return;
+		return; // optional: skip empty keywords
 	}
 
 	const int32 AnchorIndex = ResolveAnchorIndex(NextIndex);
@@ -90,19 +97,15 @@ int32 AWordInteractableManager::ResolveAnchorIndex(int32 NextLineIndex) const
 		}
 	}
 
-	// Fallback: cycle through a custom order (or default to linear)
+	// Fallback: cycle through custom order (or default linear)
 	if (CycleOrder.Num() > 0)
 	{
 		const int32 SafeCursor = (CycleCursor % CycleOrder.Num() + CycleOrder.Num()) % CycleOrder.Num();
 		int32 AnchorIdx = CycleOrder[SafeCursor];
-
-		// advance cursor (mutable so we can modify in const function)
 		CycleCursor = (SafeCursor + 1) % CycleOrder.Num();
-
 		return FMath::Clamp(AnchorIdx, 0, SpawnAnchors.Num() - 1);
 	}
 
-	// Default linear cycle
 	return (NextLineIndex % SpawnAnchors.Num());
 }
 
@@ -117,14 +120,13 @@ void AWordInteractableManager::SpawnStationFor(const FText& Keyword, int32 Ancho
 	// Replace any existing station (prevents duplicates)
 	if (bReplaceOldStation && ActiveStation.IsValid())
 	{
-		// If your AWordInteractable has a graceful exit method, call it instead.
 		ActiveStation->Destroy();
 		ActiveStation.Reset();
 	}
 
 	const FTransform SpawnXf = Anchor->GetActorTransform();
 
-	// Deferred spawn lets us set properties before BeginPlay/Construction logic runs
+	// Deferred spawn lets us set properties before BeginPlay runs on the interactable
 	AWordInteractable* Station = GetWorld()->SpawnActorDeferred<AWordInteractable>(WordClass, SpawnXf, this);
 	if (!Station) return;
 
@@ -132,6 +134,5 @@ void AWordInteractableManager::SpawnStationFor(const FText& Keyword, int32 Ancho
 	Station->AudioManager = AudioManager;
 
 	UGameplayStatics::FinishSpawningActor(Station, SpawnXf);
-
 	ActiveStation = Station;
 }
