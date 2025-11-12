@@ -1,7 +1,6 @@
 ﻿// © Anastasis Marinos //
 
 #include "World/Managers/PostProcessSnapshotManager.h"
-#include "Kismet/GameplayStatics.h"
 
 APostProcessSnapshotManager::APostProcessSnapshotManager()
 {
@@ -12,22 +11,12 @@ void APostProcessSnapshotManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!TargetVolume)
-	{
-		AutoFindTargetVolume();
-	}
-	if (TargetVolume && bForceUnbound)
-	{
-		TargetVolume->bUnbound = true;
-	}
+	checkf(TargetVolume, TEXT("PostProcessVolume is not set PostProcessSnapshotManager!"));
 
-	if (SnapshotTable.Num() == 0)
-	{
-		BuildDefaultSnapshotTable();
-	}
+	BuildDefaultSnapshotTable();
 
 	SnapshotFromVolume(Current);
-	Start  = Current;
+	Start = Current;
 	Target = Current;
 }
 
@@ -35,7 +24,7 @@ void APostProcessSnapshotManager::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!bBlending || !TargetVolume) return;
+	if (!bBlending) return;
 
 	BlendElapsed += DeltaSeconds;
 	const float Alpha = FMath::Clamp(BlendElapsed / FMath::Max(BlendDuration, KINDA_SMALL_NUMBER), 0.f, 1.f);
@@ -58,38 +47,17 @@ void APostProcessSnapshotManager::Tick(float DeltaSeconds)
 	}
 }
 
+// ========================== [ Affect & Blend Post Process Volume ] =============================== //
+
 void APostProcessSnapshotManager::ApplyPostSnapshot(EAudioSnapshot Snapshot, float BlendTimeSeconds)
 {
-	if (!SnapshotTable.Contains(Snapshot))
+	if (SnapshotTable.Contains(Snapshot))
+	{
+		BeginBlendTo(SnapshotTable[Snapshot], BlendTimeSeconds);
+	}
+	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Post snapshot not found."));
-		return;
-	}
-	BeginBlendTo(SnapshotTable[Snapshot], BlendTimeSeconds);
-}
-
-/* ---------------- Internals ---------------- */
-
-void APostProcessSnapshotManager::AutoFindTargetVolume()
-{
-	TArray<AActor*> Found;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APostProcessVolume::StaticClass(), Found);
-	for (AActor* A : Found)
-	{
-		if (auto* PPV = Cast<APostProcessVolume>(A))
-		{
-			// Prefer an unbound volume if present
-			if (PPV->bUnbound)
-			{
-				TargetVolume = PPV;
-				return;
-			}
-		}
-	}
-	// Fallback: grab the first one
-	if (Found.Num() > 0)
-	{
-		TargetVolume = Cast<APostProcessVolume>(Found[0]);
 	}
 }
 
@@ -102,8 +70,8 @@ void APostProcessSnapshotManager::SnapshotFromVolume(FPostSnapshotTargets& Out) 
 	const FPostProcessSettings& S = TargetVolume->Settings;
 
 	// Average the RGB channels to get a single scalar for Sat/Contrast
-	Out.Saturation   = static_cast<float>((S.ColorSaturation.X + S.ColorSaturation.Y + S.ColorSaturation.Z) / 3.0);
-	Out.Contrast     = static_cast<float>((S.ColorContrast.X   + S.ColorContrast.Y   + S.ColorContrast.Z)   / 3.0);
+	Out.Saturation   = (S.ColorSaturation.X + S.ColorSaturation.Y + S.ColorSaturation.Z) / 3.0;
+	Out.Contrast     = (S.ColorContrast.X   + S.ColorContrast.Y   + S.ColorContrast.Z) / 3.0;
 	Out.Vignette     = S.VignetteIntensity;
 	Out.BloomIntensity = S.BloomIntensity;
 	Out.BloomThreshold = S.BloomThreshold;
@@ -156,6 +124,8 @@ void APostProcessSnapshotManager::BeginBlendTo(const FPostSnapshotTargets& NewTa
 		bBlending = false;
 	}
 }
+
+// ========================== [ Snapshot Table ] =============================== //
 
 void APostProcessSnapshotManager::BuildDefaultSnapshotTable()
 {

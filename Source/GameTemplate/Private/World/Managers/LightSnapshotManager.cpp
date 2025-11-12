@@ -1,6 +1,8 @@
 ﻿// © Anastasis Marinos //
+
 #include "World/Managers/LightSnapshotManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Interfaces/LightColorTarget.h"
 
 ALightSnapshotManager::ALightSnapshotManager()
 {
@@ -11,28 +13,10 @@ void ALightSnapshotManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (bAutoFindLights)
-	{
-		AutoFindAllTargets();
-	}
-
-	if (SnapshotColorTable.Num() == 0)
-	{
-		BuildDefaultSnapshotColors();
-	}
-
-	// Initialize current from first valid target (else white)
-	if (ColorTargets.Num() > 0)
-	{
-		UObject* Obj = ColorTargets[0].Get();
-		if (Obj && Obj->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass()))
-		{
-			CurrentColor = ILightColorTarget::Execute_GetLightColor(Obj);
-		}
-	}
+	AutoFindAllTargets();
+	BuildDefaultSnapshotColors();
+	
 	StartColor = TargetColor = CurrentColor;
-
-	// Push initial color
 	PushColorAll(CurrentColor);
 }
 
@@ -54,100 +38,73 @@ void ALightSnapshotManager::Tick(float DeltaSeconds)
 	}
 }
 
-/* -------- Registration -------- */
-void ALightSnapshotManager::RegisterColorTarget(UObject* Target)
-{
-	if (!Target) return;
-	if (!Target->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass()))
-		return;
+// ========================== [ Register Light Actors ] =============================== //
 
-	// unique add
-	for (const TWeakObjectPtr<UObject>& P : ColorTargets)
-	{
-		if (P.Get() == Target) return;
-	}
-
-	ColorTargets.Add(Target);
-	// immediately push current color so it matches
-	ILightColorTarget::Execute_SetLightColor(Target, CurrentColor);
-}
-
-void ALightSnapshotManager::UnregisterColorTarget(UObject* Target)
-{
-	ColorTargets.RemoveAllSwap([Target](const TWeakObjectPtr<UObject>& P)
-	{
-		return P.Get() == nullptr || P.Get() == Target;
-	});
-}
-
-/* -------- API -------- */
-void ALightSnapshotManager::ApplyLightColor(const FLinearColor& InTargetColor, float BlendSeconds)
-{
-	if (BlendSeconds <= 0.f) BlendSeconds = DefaultBlendSeconds;
-	BeginBlendTo(InTargetColor, BlendSeconds);
-}
-
-void ALightSnapshotManager::ApplyLightSnapshot(EAudioSnapshot Snapshot, float BlendSeconds)
-{
-	if (const FLinearColor* Col = SnapshotColorTable.Find(Snapshot))
-	{
-		ApplyLightColor(*Col, BlendSeconds);
-	}
-	// no else/logs (as you asked to keep things clean)
-}
-
-/* -------- Internals -------- */
-void ALightSnapshotManager::BeginBlendTo(const FLinearColor& InTarget, float InBlend)
-{
-	StartColor    = CurrentColor;
-	TargetColor   = InTarget;
-	BlendDuration = FMath::Max(0.01f, InBlend);
-	BlendElapsed  = 0.f;
-	bBlending     = true;
-
-	if (BlendDuration <= 0.015f)
-	{
-		CurrentColor = TargetColor;
-		PushColorAll(CurrentColor);
-		bBlending = false;
-	}
-}
-
-/** Simplified + safe: compact dead entries, then push to the rest */
-void ALightSnapshotManager::PushColorAll(const FLinearColor& Color)
-{
-	ColorTargets.RemoveAllSwap([](const TWeakObjectPtr<UObject>& P)
-	{
-		UObject* Obj = P.Get();
-		return (!Obj || !Obj->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass()));
-	});
-
-	for (const TWeakObjectPtr<UObject>& P : ColorTargets)
-	{
-		if (UObject* Obj = P.Get())
-		{
-			ILightColorTarget::Execute_SetLightColor(Obj, Color);
-		}
-	}
-}
-
-/** Auto-discover anything that implements the interface */
 void ALightSnapshotManager::AutoFindAllTargets()
 {
 	TArray<AActor*> Found;
 	UGameplayStatics::GetAllActorsWithInterface(GetWorld(), ULightColorTarget::StaticClass(), Found);
-	for (AActor* A : Found)
+
+	for (AActor* Actor : Found)
 	{
-		RegisterColorTarget(A);
+		RegisterColorTarget(Actor);
 	}
 }
 
-/* Your existing palette; unchanged */
+// Register any Actor that implements ULightColorTarget.
+void ALightSnapshotManager::RegisterColorTarget(AActor* Target)
+{
+	if (!IsValid(Target)) return;
+	if (!Target->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass())) return;
+	if (LightTargets.Contains(Target)) return;
+
+	LightTargets.Add(Target);
+
+	// Immediately push current color so it matches.
+	ILightColorTarget::Execute_SetLightColor(Target, CurrentColor);
+}
+
+// ========================== [ Affect & Blend Lights ] =============================== //
+
+void ALightSnapshotManager::ApplyLightSnapshot(EAudioSnapshot Snapshot, float BlendSeconds)
+{
+	if (const FLinearColor* InTargetColor = SnapshotColorTable.Find(Snapshot))
+	{
+		StartColor    = CurrentColor;
+		TargetColor   = *InTargetColor;
+		BlendDuration = FMath::Max(0.01f, BlendSeconds);
+		BlendElapsed  = 0.f;
+		bBlending     = true;
+
+		if (BlendDuration <= 0.015f)
+		{
+			CurrentColor = TargetColor;
+			PushColorAll(CurrentColor);
+			bBlending = false;
+		}
+	}
+}
+
+void ALightSnapshotManager::PushColorAll(const FLinearColor& Color)
+{
+	// Trim destroyed actors.
+	LightTargets.RemoveAllSwap([](AActor* Target){ return !IsValid(Target); });
+
+	for (AActor* Target : LightTargets)
+	{
+		if (IsValid(Target) && Target->GetClass()->ImplementsInterface(ULightColorTarget::StaticClass()))
+		{
+			ILightColorTarget::Execute_SetLightColor(Target, Color);
+		}
+	}
+}
+
+// ========================== [ Snapshot Table ] =============================== //
+
 void ALightSnapshotManager::BuildDefaultSnapshotColors()
 {
 	auto C = [](uint8 R, uint8 G, uint8 B)
 	{
-		// keep your original desat or swap to FLinearColor::FromSRGBColor(FColor(R,G,B));
 		FLinearColor Lin = FLinearColor::FromSRGBColor(FColor(R, G, B));
 		const float L = Lin.GetLuminance();
 		const FLinearColor Gray(L, L, L);

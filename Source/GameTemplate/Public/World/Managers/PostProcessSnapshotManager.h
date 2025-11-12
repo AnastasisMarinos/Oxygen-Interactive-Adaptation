@@ -8,13 +8,13 @@
 #include "World/Managers/AudioSnapshotManager.h"
 #include "PostProcessSnapshotManager.generated.h"
 
-// Tunable targets we will interpolate toward
+// Tunable targets we will interpolate toward.
 USTRUCT(BlueprintType)
 struct FPostSnapshotTargets
 {
 	GENERATED_BODY()
 
-	// 1.0 = neutral for Sat/Contrast; others are absolute
+	// 1.0 = neutral for Sat/Contrast; others are absolute.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Post")
 	float Saturation = 1.0f;
 
@@ -47,24 +47,20 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
-	// Assign the volume you want to drive (auto-finds an unbound one if null)
+	// Assign the volume you want to drive (auto-finds an unbound one if null).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Post")
 	TObjectPtr<APostProcessVolume> TargetVolume = nullptr;
 
-	// Force Unbound on the target (useful for a single global look)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Post")
-	bool bForceUnbound = true;
-
-	// Table of looks keyed by the same enum you use for audio
+	// Table of looks keyed by the same enum you use for audio.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Post|Snapshots")
 	TMap<EAudioSnapshot, FPostSnapshotTargets> SnapshotTable;
 
-	// Apply a look over BlendTimeSeconds
+	// Apply a look over BlendTimeSeconds.
 	UFUNCTION(BlueprintCallable, Category="Post|Snapshots")
 	void ApplyPostSnapshot(EAudioSnapshot Snapshot, float BlendTimeSeconds = 0.35f);
 
 private:
-	// Interp state
+	// Interp state.
 	bool  bBlending = false;
 	float BlendElapsed = 0.f;
 	float BlendDuration = 0.35f;
@@ -73,8 +69,7 @@ private:
 	FPostSnapshotTargets Start;
 	FPostSnapshotTargets Target;
 
-	// Helpers
-	void AutoFindTargetVolume();
+	// Helpers.
 	void SnapshotFromVolume(FPostSnapshotTargets& Out) const;
 	void PushToVolume(const FPostSnapshotTargets& Values) const;
 	void BeginBlendTo(const FPostSnapshotTargets& NewTarget, float InBlend);

@@ -1,4 +1,4 @@
-// (C) Anastasis Marinos 2025 //
+// © Anastasis Marinos //
 
 #pragma once
 
@@ -18,12 +18,12 @@ class GAMETEMPLATE_API APlayerCharacter : public ACharacter
 public:
 	// FUNCTIONS //
 	APlayerCharacter();
-	
-	void SetCurrentInteractable(AWordInteractable* Interactable);
-	void Interact();
 
 	UFUNCTION(BlueprintCallable)
 	void Blink();
+	
+	void SetCurrentInteractable(AWordInteractable* Interactable);
+	void Interact();
 
 protected:
 	// PROPERTIES & VARIABLES //
@@ -35,14 +35,13 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> PlayerWidgetClass;
-
-	UPROPERTY()
-	AWordInteractable* CurrentInteractable;
 	
 	// FUNCTIONS //
 	virtual void BeginPlay() override;
 
 private:
-	UPlayerWidget* PlayerWidget;
+	UPROPERTY() UPlayerWidget* PlayerWidget;
+
+	UPROPERTY() AWordInteractable* CurrentInteractable;
 };
 

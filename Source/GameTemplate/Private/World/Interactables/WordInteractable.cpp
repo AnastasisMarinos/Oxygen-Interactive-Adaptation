@@ -34,23 +34,17 @@ void AWordInteractable::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Cache player
+	// Cache player.
 	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 
-	// Bind overlaps
+	// Bind overlaps.
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AWordInteractable::OnSphereBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AWordInteractable::OnSphereEndOverlap);
 
-	// Rise from below
+	// Rise from below.
 	BaseLoc = GetActorLocation();
 	SetActorLocation(BaseLoc - FVector(0.f, 0.f, RiseDistance));
 	StartRise();
-
-	// Auto-find managers
-	if (bAutoFindManagers)
-	{
-		AutoFindManagers();
-	}
 }
 
 void AWordInteractable::Tick(float DeltaSeconds)
@@ -66,15 +60,8 @@ void AWordInteractable::Interact()
 		return;
 
 	bInteracted = true;
-	
-	// VFX-only hook (don’t destroy inside)
-	OnWordActivatedFX();
 
 	// Trigger the next narration line
-	if (!AudioManager && bAutoFindManagers)
-	{
-		AutoFindManagers();
-	}
 	if (AudioManager)
 	{
 		AudioManager->PlayerTriggeredNextLine();
@@ -84,7 +71,7 @@ void AWordInteractable::Interact()
 	StartLower();
 }
 
-/* ----------------- Overlap ----------------- */
+// ========================== [ Overlaps ] =============================== //
 
 void AWordInteractable::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -109,7 +96,7 @@ void AWordInteractable::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComp, 
 	}
 }
 
-/* ----------------- Helpers ----------------- */
+// ========================== [ Animation ] =============================== //
 
 void AWordInteractable::StartRise()
 {
@@ -121,44 +108,38 @@ void AWordInteractable::StartLower()
 {
 	AnimState = EAnimState::Lowering;
 	AnimT = 0.f;
-
-	// Hide prompt & block further overlaps/interactions
-	if (InteractionSphere) InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AWordInteractable::UpdateAnim(float DeltaSeconds)
 {
 	if (AnimState == EAnimState::Idle) return;
 
-	const float Dur = (AnimState == EAnimState::Rising)
+	// Pick duration based on which leg we’re on.
+	float dur = (AnimState == EAnimState::Rising)
 		? FMath::Max(0.01f, RiseTime)
 		: FMath::Max(0.01f, LowerTime);
 
-	AnimT = FMath::Clamp(AnimT + DeltaSeconds / Dur, 0.f, 1.f);
-	const float E = EaseInOutCubic(AnimT);
+	// Normalize progress 0..1
+	AnimT = FMath::Clamp(AnimT + DeltaSeconds / dur, 0.f, 1.f);
 
-	if (AnimState == EAnimState::Rising)
-	{
-		const float Z = FMath::Lerp(BaseLoc.Z - RiseDistance, BaseLoc.Z, E);
-		SetActorLocation(FVector(BaseLoc.X, BaseLoc.Y, Z));
-		if (AnimT >= 1.f) AnimState = EAnimState::Idle;
-	}
-	else // Lowering
-	{
-		const float Z = FMath::Lerp(BaseLoc.Z, BaseLoc.Z - RiseDistance, E);
-		SetActorLocation(FVector(BaseLoc.X, BaseLoc.Y, Z));
-		if (AnimT >= 1.f) Destroy();
-	}
-}
+	// From/To heights
+	float fromZ = (AnimState == EAnimState::Rising) ? (BaseLoc.Z - RiseDistance) : BaseLoc.Z;
+	float toZ   = (AnimState == EAnimState::Rising) ? BaseLoc.Z : (BaseLoc.Z - RiseDistance);
 
-void AWordInteractable::AutoFindManagers()
-{
-	if (AudioManager) return;
+	// Smooth ease-in/out without custom math
+	float t = FMath::InterpSinInOut(0.f, 1.f, AnimT);
+	float z = FMath::Lerp(fromZ, toZ, t);
+	SetActorLocation(FVector(BaseLoc.X, BaseLoc.Y, z));
 
-	if (UWorld* W = GetWorld())
+	if (AnimT >= 1.f)
 	{
-		TArray<AActor*> Found;
-		UGameplayStatics::GetAllActorsOfClass(W, AAudioManager::StaticClass(), Found);
-		if (Found.Num() > 0) AudioManager = Cast<AAudioManager>(Found[0]);
+		if (AnimState == EAnimState::Rising)
+		{
+			AnimState = EAnimState::Idle;
+		}
+		else // Lowering finished
+		{
+			Destroy();
+		}
 	}
 }
