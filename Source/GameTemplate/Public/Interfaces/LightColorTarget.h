@@ -11,17 +11,16 @@ class ULightColorTarget : public UInterface
 {
 	GENERATED_BODY()
 };
-
 class ILightColorTarget
 {
 	GENERATED_BODY()
 
 public:
-	/** Manager will call this to set the color */
+	// Function called to set the color on light actors
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Light")
 	void SetLightColor(const FLinearColor& InColor);
 
-	/** Optional readback (manager uses it at startup if needed) */
+	// Function returns the color that's set on light actors
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Light")
 	FLinearColor GetLightColor();
 };

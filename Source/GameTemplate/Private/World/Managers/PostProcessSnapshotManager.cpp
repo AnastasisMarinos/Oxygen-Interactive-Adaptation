@@ -11,6 +11,7 @@ void APostProcessSnapshotManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Check if actor is set-up.
 	checkf(TargetVolume, TEXT("PostProcessVolume is not set PostProcessSnapshotManager!"));
 
 	BuildDefaultSnapshotTable();

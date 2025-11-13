@@ -16,17 +16,16 @@ class GAMETEMPLATE_API APlayerCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	// FUNCTIONS //
+	// Public Functions //
 	APlayerCharacter();
 
-	UFUNCTION(BlueprintCallable)
-	void Blink();
+	UFUNCTION(BlueprintCallable) void Blink();
 	
 	void SetCurrentInteractable(AWordInteractable* Interactable);
 	void Interact();
 
 protected:
-	// PROPERTIES & VARIABLES //
+	// Components //
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Camera")
 	class USpringArmComponent* CameraArm;
 	
@@ -36,12 +35,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> PlayerWidgetClass;
 	
-	// FUNCTIONS //
 	virtual void BeginPlay() override;
 
 private:
 	UPROPERTY() UPlayerWidget* PlayerWidget;
-
 	UPROPERTY() AWordInteractable* CurrentInteractable;
 };
-

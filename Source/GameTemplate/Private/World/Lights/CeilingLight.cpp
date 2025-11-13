@@ -1,4 +1,5 @@
 ﻿// © Anastasis Marinos //
+
 #include "World/Lights/CeilingLight.h"
 
 ACeilingLight::ACeilingLight()

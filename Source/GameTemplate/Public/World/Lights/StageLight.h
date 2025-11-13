@@ -17,7 +17,7 @@ class GAMETEMPLATE_API AStageLight : public AActor, public ILightColorTarget
 public:
 	AStageLight();
 
-	// Components (assign meshes in BP)
+	// Components //
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Light|Components")
 	TObjectPtr<UStaticMeshComponent> SM_LightBase;
 
@@ -30,18 +30,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Light|Components")
 	TObjectPtr<USpotLightComponent> SpotLight;
 
-	/** Optional: name of emissive color parameter on SM_LightHead's material[0] */
+	// Name of the emissive color parameter on the material //
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Light|Material")
 	FName EmissiveParamName = TEXT("EmissiveColor");
-
-	/** Native C++ convenience (kept) */
+	
 	UFUNCTION(BlueprintCallable, Category="Light")
 	void SetBeamColor(const FLinearColor& InColor);
 
 protected:
 	virtual void BeginPlay() override;
-
-	/** Interface impls */
 	virtual void SetLightColor_Implementation(const FLinearColor& InColor) override;
 
 private:
@@ -50,6 +47,6 @@ private:
 
 	FLinearColor LastColor = FLinearColor::White;
 
-	/** Applies emissive to SM_LightHead material[0] if available */
+	// Applies emissive to SM_LightHead material[0] if available
 	void ApplyHeadEmissive(const FLinearColor& InColor);
 };

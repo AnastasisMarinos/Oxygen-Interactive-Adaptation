@@ -24,13 +24,13 @@ void AStageLight::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Create a MID for the *first* material on the head (material index 0)
+	// Create a MID for the material on the head
 	if (SM_LightHead && SM_LightHead->GetMaterial(0))
 	{
 		HeadMID = SM_LightHead->CreateDynamicMaterialInstance(0);
 	}
 
-	// Initialize material to match the current light (if any)
+	// Initialize material to match the current light
 	if (SpotLight)
 	{
 		LastColor = SpotLight->GetLightColor();
@@ -38,7 +38,6 @@ void AStageLight::BeginPlay()
 	}
 }
 
-/* -------- Native helpers (unchanged external behavior, now updates emissive too) -------- */
 void AStageLight::SetBeamColor(const FLinearColor& InColor)
 {
 	LastColor = InColor;
@@ -51,13 +50,12 @@ void AStageLight::SetBeamColor(const FLinearColor& InColor)
 	ApplyHeadEmissive(InColor);
 }
 
-/* -------- Interface implementations -------- */
 void AStageLight::SetLightColor_Implementation(const FLinearColor& InColor)
 {
 	SetBeamColor(InColor);
 }
 
-/* -------- Internal -------- */
+// Applies emissive to SM_LightHead material[0] if available
 void AStageLight::ApplyHeadEmissive(const FLinearColor& InColor)
 {
 	if (HeadMID && EmissiveParamName != NAME_None)

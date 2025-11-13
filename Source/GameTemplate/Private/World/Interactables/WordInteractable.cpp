@@ -28,6 +28,13 @@ AWordInteractable::AWordInteractable()
 	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	PromptWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PromptWidget"));
+	PromptWidget->SetupAttachment(MeshComponent);
+	PromptWidget->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+	PromptWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	PromptWidget->SetDrawSize(FVector2D(220.f, 60.f));
+	PromptWidget->SetVisibility(false); 
 }
 
 void AWordInteractable::BeginPlay()
@@ -41,6 +48,10 @@ void AWordInteractable::BeginPlay()
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AWordInteractable::OnSphereBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AWordInteractable::OnSphereEndOverlap);
 
+	// Apply widget to component.
+	if (PromptWidget && PromptWidgetClass)
+		PromptWidget->SetWidgetClass(PromptWidgetClass);
+	
 	// Rise from below.
 	BaseLoc = GetActorLocation();
 	SetActorLocation(BaseLoc - FVector(0.f, 0.f, RiseDistance));
@@ -58,6 +69,9 @@ void AWordInteractable::Interact()
 {
 	if (bInteracted)
 		return;
+
+	if (PromptWidget)
+		PromptWidget->SetVisibility(false);
 
 	bInteracted = true;
 
@@ -81,6 +95,8 @@ void AWordInteractable::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComp
 		if (APlayerCharacter* PC = Cast<APlayerCharacter>(PlayerPawn))
 		{
 			PC->SetCurrentInteractable(this);
+			if (PromptWidget)
+				PromptWidget->SetVisibility(true);
 		}
 	}
 }
@@ -92,6 +108,8 @@ void AWordInteractable::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComp, 
 		if (APlayerCharacter* PC = Cast<APlayerCharacter>(PlayerPawn))
 		{
 		    PC->SetCurrentInteractable(nullptr);
+			if (PromptWidget)
+				PromptWidget->SetVisibility(false);
 		}
 	}
 }

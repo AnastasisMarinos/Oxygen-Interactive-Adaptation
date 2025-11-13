@@ -19,7 +19,7 @@ class GAMETEMPLATE_API AWordInteractable : public AActor
 public:
 	AWordInteractable();
 
-	// ---- Components ----
+	// Components //
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	USceneComponent* SceneRoot;
 
@@ -28,6 +28,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	USphereComponent* InteractionSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
+	UWidgetComponent* PromptWidget = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	TSubclassOf<UUserWidget> PromptWidgetClass;
 
 	// Animation //
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Anim")
@@ -39,12 +45,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Anim")
 	float LowerTime = 2.5f;
 
-	// Content / Managers //
-	UPROPERTY(BlueprintReadOnly, Category="Word")
-	FText Keyword;
-
+	// Managers / Content //
 	UPROPERTY(BlueprintReadOnly, Category="Managers")
 	AAudioManager* AudioManager = nullptr;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Word")
+	FText Keyword;
 
 	// Interaction //
 	void Interact();
@@ -55,7 +61,6 @@ protected:
 
 private:
 	bool bInteracted = false;
-	
 	APawn* PlayerPawn = nullptr;
 
 	// Animation //
@@ -64,15 +69,14 @@ private:
 	FVector BaseLoc;
 	float AnimT = 0.f;
 
-	// Overlap //
-	UFUNCTION()
-	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
 	// Animation Functions //
 	void StartRise();
 	void StartLower();
 	void UpdateAnim(float DeltaSeconds);
+
+	// Overlap //
+	UFUNCTION()
+	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 };

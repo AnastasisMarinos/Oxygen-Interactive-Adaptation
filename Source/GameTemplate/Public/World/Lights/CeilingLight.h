@@ -19,7 +19,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Panel")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
-	/** Name of the emissive color parameter on the material */
+	// Name of the emissive color parameter on the material
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Panel")
 	FName EmissiveParamName = TEXT("EmissiveColor");
 
@@ -31,7 +31,6 @@ private:
 	UMaterialInstanceDynamic* MID = nullptr;
 
 	FLinearColor LastColor = FLinearColor::White;
-
-	/* ILightColorTarget */
+	
 	virtual void SetLightColor_Implementation(const FLinearColor& InColor) override;
 };
