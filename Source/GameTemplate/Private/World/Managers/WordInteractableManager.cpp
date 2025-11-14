@@ -20,7 +20,7 @@ void AWordInteractableManager::BeginPlay()
 	checkf(AudioManager, TEXT("Interactable Class is not set Interactable Manager!"));
 
 	// Bind Delegates.
-	AudioManager->OnLineStarted.AddDynamic(this, &AWordInteractableManager::HandleLineStarted);
+	AudioManager->OnLineFinished.AddDynamic(this, &AWordInteractableManager::HandleLineFinished);
 
 	// Pre-spawn line 1 interactable & light the scene.
 	if (AudioManager->NarrationLines.IsValidIndex(0))
@@ -31,15 +31,13 @@ void AWordInteractableManager::BeginPlay()
 	}
 }
 
-void AWordInteractableManager::HandleLineStarted(int32 LineIndex, const FNarrationLine&)
+void AWordInteractableManager::HandleLineFinished(int32 LineIndex, const FNarrationLine&)
 {
 	// Spawn next interactable.
 	const int32 NextIndex = LineIndex + 1;
 	if (!AudioManager->NarrationLines.IsValidIndex(NextIndex))
-	{
 		return; // nothing to spawn after the last line
-	}
-
+	
 	const FNarrationLine& Next = AudioManager->NarrationLines[NextIndex];
 	const int32 AnchorIndex = RandomAnchorIndex(NextIndex);
 	

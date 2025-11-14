@@ -23,7 +23,7 @@ protected:
 
 	// Spawn next interactable when new line starts.
 	UFUNCTION()
-	void HandleLineStarted(int32 LineIndex, const FNarrationLine& Line);
+	void HandleLineFinished(int32 LineIndex, const FNarrationLine& Line);
 
 	// Picks random anchor to spawn the next interactable.
 	int32 RandomAnchorIndex(int32 NextLineIndex) const;
