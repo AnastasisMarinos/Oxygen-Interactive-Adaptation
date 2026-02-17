@@ -1,13 +1,31 @@
-# OXYGEN — Dynamic Narrative Audio-Visual System (Unreal Engine)
+# OXYGEN — Interactive Adaptation (Unreal Engine)
+
+![screenshot](Screenshots/Oxygen_HeaderBanner.png)
+
+## Overview
 
 **OXYGEN** is an experimental narrative experience built in **Unreal Engine**, designed to explore **dynamic audio–visual synchronization, spatial interaction, and data-driven storytelling**.
 Inspired by the rhythm, pacing, and thematic structure of Ivan Vyrypaev’s *Oxygen*, this project reimagines a section of the text as an **interactive moving scene**, where lighting, post-processing, and sound respond directly to player-driven narrative progression.
 
 All systems are implemented using **native Unreal Engine functionality** — no third-party plugins, assets, or middleware.
 
+## Goals
+
+This project explores:
+
+* The limits of **Unreal’s built-in A/V systems**
+* Narrative pacing controlled by **player traversal**
+* Intersection of **interactive media and theatre**
+* High responsiveness **without external middleware**
+* Smooth, art-directed transitions using **real-time snapshot systems**
+
+It is designed as a **technical showcase and creative experiment**, rather than a commercial game.
+
 ---
 
-## ⭐ Overview
+![screenshot](Screenshots/Oxygen_FeaturesBanner.png)
+
+## Features
 
 At its core, OXYGEN is a **modular, beat-aware narrative engine**.
 The environment reacts dynamically to:
@@ -64,7 +82,7 @@ This creates a **tightly choreographed experience** where music, lighting, and n
 
 ---
 
-## 🧩 Core Systems
+## Core Systems
 
 ### **Word Station System**
 
@@ -76,8 +94,7 @@ This creates a **tightly choreographed experience** where music, lighting, and n
   * Dynamic spawn locations
   * Player proximity detection
   * Auto-advance fail-safe
-  * Line-linked keyword display
-  * Data-driven behavior
+ 
 * Each station triggers:
 
   * VO line playback
@@ -110,18 +127,16 @@ This creates a **tightly choreographed experience** where music, lighting, and n
 
 ---
 
-## 🎨 Visual Identity
+## Visual Identity
 
 * Heavy contrast between dark ambience and bright keywords
 * High-emissive text as symbolic objects
 * Atmospheric fog and colored washes
-* Dynamic mood swings controlled entirely by data
-* Minimal UI — the world itself carries the storytelling
 * Hybrid of **theatre, concert staging, and interactive installation**
 
 ---
 
-## 🎙 Narrative Foundation
+## Narrative Foundation
 
 * Theatrical adaptation of material from Ivan Vyrypaev’s *Oxygen*
 * Focus on rhythm, contradiction, and thematic escalation
@@ -129,7 +144,7 @@ This creates a **tightly choreographed experience** where music, lighting, and n
 
 ---
 
-## 🔧 Technical Highlights
+## Technical Highlights
 
 * 100% **C++ foundation** with lightweight Blueprints for UI
 * No third-party plugins
@@ -141,14 +156,8 @@ This creates a **tightly choreographed experience** where music, lighting, and n
 
 ---
 
-## 📌 Goals
+## Contact
 
-This project explores:
+- **https://anastasismarinos.com**
 
-* The limits of **Unreal’s built-in A/V systems**
-* Narrative pacing controlled by **player traversal**
-* Intersection of **interactive media and theatre**
-* High responsiveness **without external middleware**
-* Smooth, art-directed transitions using **real-time snapshot systems**
-
-It is designed as a **technical showcase and creative experiment**, rather than a commercial game.
+---
